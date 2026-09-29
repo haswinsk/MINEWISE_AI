@@ -1,24 +1,27 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import mongoose from 'mongoose';
 
-const databaseUrl = process.env.DATABASE_URL;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is required");
+if (!MONGODB_URI) {
+  throw new Error('MONGODB_URI is required');
 }
 
 const globalForDb = globalThis as typeof globalThis & {
-  __arenaNextJsPostgresqlPool?: Pool;
+  __mongooseConnection?: mongoose.Connection;
 };
 
-export const pool =
-  globalForDb.__arenaNextJsPostgresqlPool ??
-  new Pool({
-    connectionString: databaseUrl,
-  });
+export const db =
+  globalForDb.__mongooseConnection ??
+  mongoose.createConnection(MONGODB_URI);
 
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.__arenaNextJsPostgresqlPool = pool;
+if (process.env.NODE_ENV !== 'production') {
+  globalForDb.__mongooseConnection = db;
 }
 
-export const db = drizzle(pool);
+db.on('error', (error) => {
+  console.error('MongoDB connection error:', error);
+});
+
+db.once('open', () => {
+  console.log('MongoDB connected successfully');
+});
